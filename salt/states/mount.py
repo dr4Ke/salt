@@ -16,6 +16,9 @@ Mount any type of mountable filesystem with the mounted function:
           - defaults
 '''
 
+# Import python libs
+import os.path
+
 # Import salt libs
 from salt._compat import string_types
 
@@ -82,8 +85,10 @@ def mounted(name,
 
     # Get the active data
     active = __salt__['mount.active']()
-    if name in active:
-        if active.__getitem__(name).__getitem__('device') != device:
+    real_name = os.path.realpath(name)
+    real_device = os.path.realpath(device)
+    if real_name in active:
+        if active.__getitem__(name).__getitem__('device') != real_device:
             # name matches but device doesn't - need to umount
             out = __salt__['mount.umount'](name)
             active = __salt__['mount.active']()
