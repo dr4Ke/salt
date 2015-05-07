@@ -511,3 +511,80 @@ def get_or_set_hash(name,
             setval(name, val)
 
     return get(name)
+
+
+def set(key,
+        val='',
+        force=False,
+        delimiter=':'):
+    '''
+    Set a key to an arbitrary value. It is used like setval but works
+    with nested keys in a dictionnary.
+
+    .. versionadded:: FIXME
+
+    Conflicts are treated as such:
+
+    FIXME
+
+    :param force: Force writing over conflictiong entry. Defaults to False.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt '*' grains.set 'apps:myApp:port' 2209
+    '''
+
+    print('Key: {0}\nVal: {1}\nForce: {2}\nDelimiter: {3}'.format(key, val, force, delimiter))
+
+    # Get val type
+    if isinstance(val, dict):
+        vtype = dict
+    elif isinstance(val, list):
+        vtype = list
+    elif isinstance(val, str):
+        vtype = str
+    elif val == None:
+        vtype = None
+    else:
+        return 'The val {0} type is not known'.format(val)
+
+    print('Type of val: {0}'.format(vtype))
+
+    grains = get(key, None)
+    if grains == val:
+        return 'The val {0} was already set for key {1}'.format(val, key)
+    #elif isinstance(grains, list) and val in grains:
+    #    return 'The val {0} was already in the list {1}'.format(val, key)
+    #elif isinstance(grains, dict) and val == grains:
+    #    return 'The val {0} was already in the list {1}'.format(val, key)
+
+    # Check if a val is a dictionnary key in a list
+    #elif isinstance(grains, list):
+    #    for item in grains:
+    #        if isinstance(item, dict):
+    #            if val in item.keys():
+    #                return True
+    #    return False
+
+    if grains is not None and not (isinstance(grains, vtype) or force):
+        return 'The key {0} exists but is not the same type as val. '.format(key) \
+             + 'Use force=True to overwrite.'
+    else:
+        # Same type or force
+        grains = val
+
+    print('\nkey: {0}\ngrains: {1}'.format(key, grains))
+    # Process nested grains
+    while delimiter in key:
+        key, rest = key.rsplit(delimiter, 1)
+        _grain = get(key, _infinitedict(), delimiter)
+        print('\nkey:', key, '\nrest:', rest, '\n_grain:', _grain, '\ngrains:', grains)
+        if isinstance(_grain, dict):
+            _grain.update({rest: grains})
+        grains = _grain
+
+    print('\nkey: {0}\ngrains: {1}'.format(key, grains))
+    #return 'grains.set function END'
+    return setval(key, grains)
