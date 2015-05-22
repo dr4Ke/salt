@@ -239,6 +239,226 @@ class GrainsModuleTestCase(TestCase):
         # check the whole grains
         self.assertEqual(grainsmod.__grains__, {'a': ['b', 'c']})
 
+    def test_set_same_simple_value(self):
+        # Replace a simple value in a grain
+        grainsmod.__grains__ = {'a': 12, 'c': 8}
+        res = grainsmod.set('a', 12)
+        # check the result
+        self.assertEqual(res, 'The value \'12\' was already set for key \'a\'')
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 12, 'c': 8})
+
+    def test_set_simple_value(self):
+        # Set a simple value to a grain
+        grainsmod.__grains__ = {'a': ['b', 'c'], 'c': 8}
+        res = grainsmod.set('b', 'bval')
+        # check the result
+        self.assertEqual(res, {'b': 'bval'})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': ['b', 'c'], 'b': 'bval', 'c': 8})
+
+    def test_set_replace_value(self):
+        # Replace a simple value in a grain
+        grainsmod.__grains__ = {'a': 'aval', 'c': 8}
+        res = grainsmod.set('a', 12)
+        # check the result
+        self.assertEqual(res, {'a': 12})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 12, 'c': 8})
+
+    def test_set_None_ok(self):
+        grainsmod.__grains__ = {'a': 'aval', 'c': 8}
+        res = grainsmod.set('b', None)
+        # check the result
+        self.assertEqual(res, {'b': None})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': None, 'c': 8})
+
+    def test_set_None_ok_destructive(self):
+        grainsmod.__grains__ = {'a': 'aval', 'c': 8}
+        res = grainsmod.set('b', None, destructive=True)
+        # check the result
+        self.assertEqual(res, {'b': None})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'c': 8})
+
+    def test_set_None_replace_ok(self):
+        grainsmod.__grains__ = {'a': 'aval', 'c': 8}
+        res = grainsmod.set('a', None)
+        # check the result
+        self.assertEqual(res, {'a': None})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': None, 'c': 8})
+
+    def test_set_None_force_destructive(self):
+        grainsmod.__grains__ = {'a': 'aval', 'c': 8}
+        res = grainsmod.set('a', None, force=True, destructive=True)
+        # check the result
+        self.assertEqual(res, {'a': None})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'c': 8})
+
+    def test_set_same_complex_value(self):
+        grainsmod.__grains__ = {'a': ['item', 12], 'c': 8}
+        res = grainsmod.set('a', ['item', 12])
+        # check the result
+        self.assertEqual(res, 'The value \'[\'item\', 12]\' was already set for key \'a\'')
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': ['item', 12], 'c': 8})
+
+    def test_set_replace_value_was_complex_fail(self):
+        grainsmod.__grains__ = {'a': ['item', 12], 'c': 8}
+        res = grainsmod.set('a', ['item', 14])
+        # check the result
+        self.assertEqual(res, 'The key \'a\' exists but is a dict or a list. Use \'force=True\' to overwrite.')
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': ['item', 12], 'c': 8})
+
+    def test_set_replace_value_was_complex_force(self):
+        grainsmod.__grains__ = {'a': ['item', 12], 'c': 8}
+        res = grainsmod.set('a', 'aval', force=True)
+        # check the result
+        self.assertEqual(res, {'a': 'aval'})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'c': 8})
+
+    def test_set_complex_value_fail(self):
+        grainsmod.__grains__ = {'a': 'aval', 'c': 8}
+        res = grainsmod.set('a', ['item', 12])
+        # check the result
+        self.assertEqual(res, 'The key \'a\' exists and the given value is a dict or a list. Use \'force=True\' to overwrite.')
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'c': 8})
+
+    def test_set_complex_value_force(self):
+        grainsmod.__grains__ = {'a': 'aval', 'c': 8}
+        res = grainsmod.set('a', ['item', 12], force=True)
+        # check the result
+        self.assertEqual(res, {'a': ['item', 12]})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': ['item', 12], 'c': 8})
+
+    def test_set_nested_same_value(self):
+        # Replace a simple value in a grain
+        grainsmod.__grains__ = {'a': 'aval', 'b': {'nested': 'val'}, 'c': 8}
+        res = grainsmod.set('b,nested', 'val', delimiter=',')
+        # check the result
+        self.assertEqual(res, 'The value \'val\' was already set for key \'b,nested\'')
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': {'nested': 'val'}, 'c': 8})
+
+    def test_set_nested_create(self):
+        grainsmod.__grains__ = {'a': 'aval', 'c': 8}
+        res = grainsmod.set('b,nested', 'val', delimiter=',')
+        # check the result
+        self.assertEqual(res, {'b': {'nested': 'val'}})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': {'nested': 'val'}, 'c': 8})
+
+    def test_set_nested_update_dict(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': {'nested': 'val'}, 'c': 8}
+        res = grainsmod.set('b,nested', 'val2', delimiter=',')
+        # check the result
+        self.assertEqual(res, {'b': {'nested': 'val2'}})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': {'nested': 'val2'}, 'c': 8})
+
+    def test_set_nested_update_dict_remove_key(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': {'nested': 'val'}, 'c': 8}
+        res = grainsmod.set('b,nested', None, delimiter=',', destructive=True)
+        # check the result
+        self.assertEqual(res, {'b': {}})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': {}, 'c': 8})
+
+    def test_set_nested_update_dict_new_key(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': {'nested': 'val'}, 'c': 8}
+        res = grainsmod.set('b,b2', 'val2', delimiter=',')
+        # check the result
+        self.assertEqual(res, {'b': {'b2': 'val2', 'nested': 'val'}})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': {'b2': 'val2', 'nested': 'val'}, 'c': 8})
+
+    def test_set_nested_list_replace_key(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': ['l1', 'l2'], 'c': 8}
+        res = grainsmod.set('b,l2', 'val2', delimiter=',')
+        # check the result
+        self.assertEqual(res, {'b': ['l1', {'l2': 'val2'}]})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': ['l1', {'l2': 'val2'}], 'c': 8})
+
+    def test_set_nested_list_update_dict_key(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': ['l1', {'l2': 'val1'}], 'c': 8}
+        res = grainsmod.set('b,l2', 'val2', delimiter=',')
+        # check the result
+        self.assertEqual(res, {'b': ['l1', {'l2': 'val2'}]})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': ['l1', {'l2': 'val2'}], 'c': 8})
+
+    def test_set_nested_list_update_dict_key_fail(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': ['l1', {'l2': ['val1']}], 'c': 8}
+        res = grainsmod.set('b,l2', 'val2', delimiter=',')
+        # check the result
+        self.assertEqual(res, 'The key \'b,l2\' exists but is a dict or a list. Use \'force=True\' to overwrite.')
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': ['l1', {'l2': ['val1']}], 'c': 8})
+
+    def test_set_nested_list_update_dict_key_overwrite(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': ['l1', {'l2': ['val1']}], 'c': 8}
+        res = grainsmod.set('b,l2', 'val2', delimiter=',', force=True)
+        # check the result
+        self.assertEqual(res, {'b': ['l1', {'l2': 'val2'}]})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': ['l1', {'l2': 'val2'}], 'c': 8})
+
+    def test_set_nested_list_append_dict_key(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': ['l1', {'l2': 'val2'}], 'c': 8}
+        res = grainsmod.set('b,l3', 'val3', delimiter=',')
+        # check the result
+        self.assertEqual(res, {'b': ['l1', {'l2': 'val2'}, {'l3': 'val3'}]})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': ['l1', {'l2': 'val2'}, {'l3': 'val3'}], 'c': 8})
+
+    def test_set_nested_existing_value_is_the_key(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': 'l3', 'c': 8}
+        res = grainsmod.set('b,l3', 'val3', delimiter=',')
+        # check the result
+        self.assertEqual(res, {'b': {'l3': 'val3'}})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': {'l3': 'val3'}, 'c': 8})
+
+    def test_set_nested_existing_value_fails(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': 'l1', 'c': 8}
+        res = grainsmod.set('b,l3', 'val3', delimiter=',')
+        # check the result
+        self.assertEqual(res, 'The key \'b\' value is \'l1\', which is different from the provided key \'l3\'. Use \'force=True\' to overwrite.')
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': 'l1', 'c': 8})
+
+    def test_set_nested_existing_value_overwrite(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': 'l1', 'c': 8}
+        res = grainsmod.set('b,l3', 'val3', delimiter=',', force=True)
+        # check the result
+        self.assertEqual(res, {'b': {'l3': 'val3'}})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': {'l3': 'val3'}, 'c': 8})
+
+    def test_set_deeply_nested_update(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': {'l1': ['l21', 'l22', {'l23': 'l23val'}]}, 'c': 8}
+        res = grainsmod.set('b,l1,l23', 'val', delimiter=',')
+        # check the result
+        self.assertEqual(res, {'b': {'l1': ['l21', 'l22', {'l23': 'val'}]}})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': {'l1': ['l21', 'l22', {'l23': 'val'}]}, 'c': 8})
+
+    def test_set_deeply_nested_create(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': {'l1': ['l21', 'l22', {'l23': 'l23val'}]}, 'c': 8}
+        res = grainsmod.set('b,l1,l24,l241', 'val', delimiter=',')
+        # check the result
+        self.assertEqual(res, {'b': {'l1': ['l21', 'l22', {'l23': 'l23val'}, {'l24': {'l241': 'val'}}]}})
+        # check the whole grains
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': {'l1': ['l21', 'l22', {'l23': 'l23val'}, {'l24': {'l241': 'val'}}]}, 'c': 8})
+
 
 if __name__ == '__main__':
     from integration import run_tests
