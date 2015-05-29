@@ -33,6 +33,8 @@ __outputter__ = {
 # http://stackoverflow.com/a/12414913/127816
 _infinitedict = lambda: collections.defaultdict(_infinitedict)
 
+_non_existent_key = 'NonExistentValueMagicNumberSpK3hnufdHfeBUXCfqVK'
+
 log = logging.getLogger(__name__)
 
 
@@ -516,10 +518,11 @@ def get_or_set_hash(name,
 def set(key,
         val='',
         force=False,
+        destructive=False,
         delimiter=':'):
     '''
     Set a key to an arbitrary value. It is used like setval but works
-    with nested keys in a dictionnary.
+    with nested keys.
 
     .. versionadded:: FIXME
 
@@ -528,63 +531,75 @@ def set(key,
     FIXME
 
     :param force: Force writing over conflictiong entry. Defaults to False.
+    :param destructive: If an operation results in a key being removed, delete the key, too. Defaults to False.
 
     CLI Example:
 
     .. code-block:: bash
 
         salt '*' grains.set 'apps:myApp:port' 2209
+        salt '*' grains.set 'apps:myApp' '{port: 2209}'
     '''
 
-    print('Key: {0}\nVal: {1}\nForce: {2}\nDelimiter: {3}'.format(key, val, force, delimiter))
-
     # Get val type
+    _new_value_type = 'simple'
     if isinstance(val, dict):
-        vtype = dict
+        _new_value_type = 'complex'
     elif isinstance(val, list):
-        vtype = list
-    elif isinstance(val, str):
-        vtype = str
-    elif val == None:
-        vtype = None
+        _new_value_type = 'complex'
+
+    _existing_value = get(key, _non_existent_key, delimiter)
+    _value = _existing_value
+
+    _existing_value_type = 'simple'
+    if _existing_value == _non_existent_key:
+        _existing_value_type = None
+    elif isinstance(_existing_value, dict):
+        _existing_value_type = 'complex'
+    elif isinstance(_existing_value, list):
+        _existing_value_type = 'complex'
+
+    if _existing_value_type != None and _existing_value == val:
+        return 'The value \'{0}\' was already set for key \'{1}\''.format(val, key)
+
+    if _existing_value is not None and not force:
+        if _existing_value_type == 'complex':
+            return 'The key \'{0}\' exists but is a dict or a list. '.format(key) \
+                 + 'Use \'force=True\' to overwrite.'
+        elif _new_value_type == 'complex' and _existing_value_type != None:
+            return 'The key \'{0}\' exists and the given value is a dict or a list. '.format(key) \
+                 + 'Use \'force=True\' to overwrite.'
+        else:
+            _value = val
     else:
-        return 'The val {0} type is not known'.format(val)
+        _value = val
 
-    print('Type of val: {0}'.format(vtype))
-
-    grains = get(key, None)
-    if grains == val:
-        return 'The val {0} was already set for key {1}'.format(val, key)
-    #elif isinstance(grains, list) and val in grains:
-    #    return 'The val {0} was already in the list {1}'.format(val, key)
-    #elif isinstance(grains, dict) and val == grains:
-    #    return 'The val {0} was already in the list {1}'.format(val, key)
-
-    # Check if a val is a dictionnary key in a list
-    #elif isinstance(grains, list):
-    #    for item in grains:
-    #        if isinstance(item, dict):
-    #            if val in item.keys():
-    #                return True
-    #    return False
-
-    if grains is not None and not (isinstance(grains, vtype) or force):
-        return 'The key {0} exists but is not the same type as val. '.format(key) \
-             + 'Use force=True to overwrite.'
-    else:
-        # Same type or force
-        grains = val
-
-    print('\nkey: {0}\ngrains: {1}'.format(key, grains))
     # Process nested grains
     while delimiter in key:
         key, rest = key.rsplit(delimiter, 1)
-        _grain = get(key, _infinitedict(), delimiter)
-        print('\nkey:', key, '\nrest:', rest, '\n_grain:', _grain, '\ngrains:', grains)
-        if isinstance(_grain, dict):
-            _grain.update({rest: grains})
-        grains = _grain
+        _existing_value = get(key, {}, delimiter)
+        if isinstance(_existing_value, dict):
+            if _value == None and destructive:
+                if rest in _existing_value.keys():
+                    _existing_value.pop(rest)
+            else:
+                _existing_value.update({rest: _value})
+        elif isinstance(_existing_value, list):
+            _list_updated = False
+            if rest in _existing_value:
+                _existing_value.remove(rest)
+            else:
+                for _item in _existing_value:
+                    if isinstance(_item, dict) and rest in _item:
+                        _item.update({rest: _value})
+                        _list_updated = True
+            if not _list_updated:
+                _existing_value.append({rest: _value})
+        elif _existing_value == rest or force == True:
+            _existing_value = {rest: _value}
+        else:
+            return 'The key \'{0}\' value is \'{1}\', which is different from the provided key \'{2}\'. '.format(key, _existing_value, rest) \
+                 + 'Use \'force=True\' to overwrite.'
+        _value = _existing_value
 
-    print('\nkey: {0}\ngrains: {1}'.format(key, grains))
-    #return 'grains.set function END'
-    return setval(key, grains)
+    return setval(key, _value, destructive=destructive)
