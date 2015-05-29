@@ -565,8 +565,8 @@ def set(key,
             return 'The key \'{0}\' exists but is a dict or a list. '.format(key) \
                  + 'Use \'force=True\' to overwrite.'
         elif _new_value_type == 'complex' and _existing_value_type != None:
-            return 'The key \'{0}\' exists and the given value is a dict or a list. '.format(key) \
-                 + 'Use \'force=True\' to overwrite.'
+            return 'The key \'{0}\' exists and the given value is a '.format(key) \
+                 + 'dict or a list. Use \'force=True\' to overwrite.'
         else:
             _value = val
     else:
@@ -596,7 +596,8 @@ def set(key,
         elif _existing_value == rest or force == True:
             _existing_value = {rest: _value}
         else:
-            return 'The key \'{0}\' value is \'{1}\', which is different from the provided key \'{2}\'. '.format(key, _existing_value, rest) \
+            return 'The key \'{0}\' value is \'{1}\', '.format(key, _existing_value) \
+                 + 'which is different from the provided key \'{0}\'. '.format(rest) \
                  + 'Use \'force=True\' to overwrite.'
         _value = _existing_value
 
