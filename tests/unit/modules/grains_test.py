@@ -213,20 +213,23 @@ class GrainsModuleTestCase(TestCase):
         # Set a grain to the same simple value
         grainsmod.__grains__ = {'a': 12, 'c': 8}
         res = grainsmod.set('a', 12)
-        self.assertEqual(res, 'The value \'12\' was already set for key \'a\'')
+        self.assertTrue(res['result'])
+        self.assertEqual(res['comment'], 'The value \'12\' was already set for key \'a\'')
         self.assertEqual(grainsmod.__grains__, {'a': 12, 'c': 8})
 
         # Set a grain to the same complex value
         grainsmod.__grains__ = {'a': ['item', 12], 'c': 8}
         res = grainsmod.set('a', ['item', 12])
-        self.assertEqual(res, 'The value \'[\'item\', 12]\' was already set ' \
+        self.assertTrue(res['result'])
+        self.assertEqual(res['comment'], 'The value \'[\'item\', 12]\' was already set ' \
                             + 'for key \'a\'')
         self.assertEqual(grainsmod.__grains__, {'a': ['item', 12], 'c': 8})
 
         # Set a key to the same simple value in a nested grain
         grainsmod.__grains__ = {'a': 'aval', 'b': {'nested': 'val'}, 'c': 8}
         res = grainsmod.set('b,nested', 'val', delimiter=',')
-        self.assertEqual(res, 'The value \'val\' was already set for key ' \
+        self.assertTrue(res['result'])
+        self.assertEqual(res['comment'], 'The value \'val\' was already set for key ' \
                             + '\'b,nested\'')
         self.assertEqual(grainsmod.__grains__, {'a': 'aval',
                                                 'b': {'nested': 'val'},
@@ -236,14 +239,16 @@ class GrainsModuleTestCase(TestCase):
         # Fails to set a complex value without 'force'
         grainsmod.__grains__ = {'a': 'aval', 'c': 8}
         res = grainsmod.set('a', ['item', 12])
-        self.assertEqual(res, 'The key \'a\' exists and the given value is a ' \
+        self.assertFalse(res['result'])
+        self.assertEqual(res['comment'], 'The key \'a\' exists and the given value is a ' \
                             + 'dict or a list. Use \'force=True\' to overwrite.')
         self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'c': 8})
 
         # Fails to overwrite a complex value without 'force'
         grainsmod.__grains__ = {'a': ['item', 12], 'c': 8}
         res = grainsmod.set('a', ['item', 14])
-        self.assertEqual(res, 'The key \'a\' exists but is a dict or a list. ' \
+        self.assertFalse(res['result'])
+        self.assertEqual(res['comment'], 'The key \'a\' exists but is a dict or a list. ' \
                             + 'Use \'force=True\' to overwrite.')
         self.assertEqual(grainsmod.__grains__, {'a': ['item', 12], 'c': 8})
 
@@ -252,7 +257,8 @@ class GrainsModuleTestCase(TestCase):
                                 'b': ['l1', {'l2': ['val1']}],
                                 'c': 8}
         res = grainsmod.set('b,l2', 'val2', delimiter=',')
-        self.assertEqual(res, 'The key \'b,l2\' exists but is a dict or a ' \
+        self.assertFalse(res['result'])
+        self.assertEqual(res['comment'], 'The key \'b,l2\' exists but is a dict or a ' \
                             + 'list. Use \'force=True\' to overwrite.')
         self.assertEqual(grainsmod.__grains__, {'a': 'aval',
                                                 'b': ['l1', {'l2': ['val1']}],
@@ -263,7 +269,8 @@ class GrainsModuleTestCase(TestCase):
         # of the specified key and value
         grainsmod.__grains__ = {'a': 'aval', 'b': 'l1', 'c': 8}
         res = grainsmod.set('b,l3', 'val3', delimiter=',')
-        self.assertEqual(res, 'The key \'b\' value is \'l1\', which is ' \
+        self.assertFalse(res['result'])
+        self.assertEqual(res['comment'], 'The key \'b\' value is \'l1\', which is ' \
                             + 'different from the provided key \'l3\'. ' \
                             + 'Use \'force=True\' to overwrite.')
         self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': 'l1', 'c': 8})
@@ -271,7 +278,8 @@ class GrainsModuleTestCase(TestCase):
     def test_set_simple_value(self):
         grainsmod.__grains__ = {'a': ['b', 'c'], 'c': 8}
         res = grainsmod.set('b', 'bval')
-        self.assertEqual(res, {'b': 'bval'})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': 'bval'})
         self.assertEqual(grainsmod.__grains__, {'a': ['b', 'c'],
                                                 'b': 'bval',
                                                 'c': 8})
@@ -279,49 +287,57 @@ class GrainsModuleTestCase(TestCase):
     def test_set_replace_value(self):
         grainsmod.__grains__ = {'a': 'aval', 'c': 8}
         res = grainsmod.set('a', 12)
-        self.assertEqual(res, {'a': 12})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'a': 12})
         self.assertEqual(grainsmod.__grains__, {'a': 12, 'c': 8})
 
     def test_set_None_ok(self):
         grainsmod.__grains__ = {'a': 'aval', 'c': 8}
         res = grainsmod.set('b', None)
-        self.assertEqual(res, {'b': None})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': None})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': None, 'c': 8})
 
     def test_set_None_ok_destructive(self):
         grainsmod.__grains__ = {'a': 'aval', 'c': 8}
         res = grainsmod.set('b', None, destructive=True)
-        self.assertEqual(res, {'b': None})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': None})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'c': 8})
 
     def test_set_None_replace_ok(self):
         grainsmod.__grains__ = {'a': 'aval', 'c': 8}
         res = grainsmod.set('a', None)
-        self.assertEqual(res, {'a': None})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'a': None})
         self.assertEqual(grainsmod.__grains__, {'a': None, 'c': 8})
 
     def test_set_None_force_destructive(self):
         grainsmod.__grains__ = {'a': 'aval', 'c': 8}
         res = grainsmod.set('a', None, force=True, destructive=True)
-        self.assertEqual(res, {'a': None})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'a': None})
         self.assertEqual(grainsmod.__grains__, {'c': 8})
 
     def test_set_replace_value_was_complex_force(self):
         grainsmod.__grains__ = {'a': ['item', 12], 'c': 8}
         res = grainsmod.set('a', 'aval', force=True)
-        self.assertEqual(res, {'a': 'aval'})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'a': 'aval'})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'c': 8})
 
     def test_set_complex_value_force(self):
         grainsmod.__grains__ = {'a': 'aval', 'c': 8}
         res = grainsmod.set('a', ['item', 12], force=True)
-        self.assertEqual(res, {'a': ['item', 12]})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'a': ['item', 12]})
         self.assertEqual(grainsmod.__grains__, {'a': ['item', 12], 'c': 8})
 
     def test_set_nested_create(self):
         grainsmod.__grains__ = {'a': 'aval', 'c': 8}
         res = grainsmod.set('b,nested', 'val', delimiter=',')
-        self.assertEqual(res, {'b': {'nested': 'val'}})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': {'nested': 'val'}})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval',
                                                 'b': {'nested': 'val'},
                                                 'c': 8})
@@ -329,7 +345,8 @@ class GrainsModuleTestCase(TestCase):
     def test_set_nested_update_dict(self):
         grainsmod.__grains__ = {'a': 'aval', 'b': {'nested': 'val'}, 'c': 8}
         res = grainsmod.set('b,nested', 'val2', delimiter=',')
-        self.assertEqual(res, {'b': {'nested': 'val2'}})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': {'nested': 'val2'}})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval',
                                                 'b': {'nested': 'val2'},
                                                 'c': 8})
@@ -337,13 +354,15 @@ class GrainsModuleTestCase(TestCase):
     def test_set_nested_update_dict_remove_key(self):
         grainsmod.__grains__ = {'a': 'aval', 'b': {'nested': 'val'}, 'c': 8}
         res = grainsmod.set('b,nested', None, delimiter=',', destructive=True)
-        self.assertEqual(res, {'b': {}})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': {}})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': {}, 'c': 8})
 
     def test_set_nested_update_dict_new_key(self):
         grainsmod.__grains__ = {'a': 'aval', 'b': {'nested': 'val'}, 'c': 8}
         res = grainsmod.set('b,b2', 'val2', delimiter=',')
-        self.assertEqual(res, {'b': {'b2': 'val2', 'nested': 'val'}})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': {'b2': 'val2', 'nested': 'val'}})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval',
                                                 'b': {'b2': 'val2',
                                                       'nested': 'val'},
@@ -352,7 +371,8 @@ class GrainsModuleTestCase(TestCase):
     def test_set_nested_list_replace_key(self):
         grainsmod.__grains__ = {'a': 'aval', 'b': ['l1', 'l2'], 'c': 8}
         res = grainsmod.set('b,l2', 'val2', delimiter=',')
-        self.assertEqual(res, {'b': ['l1', {'l2': 'val2'}]})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': ['l1', {'l2': 'val2'}]})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval',
                                                 'b': ['l1', {'l2': 'val2'}],
                                                 'c': 8})
@@ -360,7 +380,8 @@ class GrainsModuleTestCase(TestCase):
     def test_set_nested_list_update_dict_key(self):
         grainsmod.__grains__ = {'a': 'aval', 'b': ['l1', {'l2': 'val1'}], 'c': 8}
         res = grainsmod.set('b,l2', 'val2', delimiter=',')
-        self.assertEqual(res, {'b': ['l1', {'l2': 'val2'}]})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': ['l1', {'l2': 'val2'}]})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval',
                                                 'b': ['l1', {'l2': 'val2'}],
                                                 'c': 8})
@@ -370,7 +391,8 @@ class GrainsModuleTestCase(TestCase):
                                 'b': ['l1', {'l2': ['val1']}],
                                 'c': 8}
         res = grainsmod.set('b,l2', 'val2', delimiter=',', force=True)
-        self.assertEqual(res, {'b': ['l1', {'l2': 'val2'}]})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': ['l1', {'l2': 'val2'}]})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval',
                                                 'b': ['l1', {'l2': 'val2'}],
                                                 'c': 8})
@@ -380,7 +402,8 @@ class GrainsModuleTestCase(TestCase):
                                 'b': ['l1', {'l2': 'val2'}],
                                 'c': 8}
         res = grainsmod.set('b,l3', 'val3', delimiter=',')
-        self.assertEqual(res, {'b': ['l1', {'l2': 'val2'}, {'l3': 'val3'}]})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': ['l1', {'l2': 'val2'}, {'l3': 'val3'}]})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval',
                                                 'b': ['l1',
                                                       {'l2': 'val2'},
@@ -390,7 +413,8 @@ class GrainsModuleTestCase(TestCase):
     def test_set_nested_existing_value_is_the_key(self):
         grainsmod.__grains__ = {'a': 'aval', 'b': 'l3', 'c': 8}
         res = grainsmod.set('b,l3', 'val3', delimiter=',')
-        self.assertEqual(res, {'b': {'l3': 'val3'}})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': {'l3': 'val3'}})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval',
                                                 'b': {'l3': 'val3'},
                                                 'c': 8})
@@ -398,7 +422,8 @@ class GrainsModuleTestCase(TestCase):
     def test_set_nested_existing_value_overwrite(self):
         grainsmod.__grains__ = {'a': 'aval', 'b': 'l1', 'c': 8}
         res = grainsmod.set('b,l3', 'val3', delimiter=',', force=True)
-        self.assertEqual(res, {'b': {'l3': 'val3'}})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': {'l3': 'val3'}})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval',
                                                 'b': {'l3': 'val3'},
                                                 'c': 8})
@@ -408,7 +433,8 @@ class GrainsModuleTestCase(TestCase):
                                 'b': {'l1': ['l21', 'l22', {'l23': 'l23val'}]},
                                 'c': 8}
         res = grainsmod.set('b,l1,l23', 'val', delimiter=',')
-        self.assertEqual(res, {'b': {'l1': ['l21', 'l22', {'l23': 'val'}]}})
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': {'l1': ['l21', 'l22', {'l23': 'val'}]}})
         self.assertEqual(grainsmod.__grains__, {'a': 'aval',
                                                 'b': {'l1': ['l21',
                                                              'l22',
@@ -420,7 +446,8 @@ class GrainsModuleTestCase(TestCase):
                                 'b': {'l1': ['l21', 'l22', {'l23': 'l23val'}]},
                                 'c': 8}
         res = grainsmod.set('b,l1,l24,l241', 'val', delimiter=',')
-        self.assertEqual(res, {'b': {'l1': ['l21',
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': {'l1': ['l21',
                                             'l22',
                                             {'l23': 'l23val'},
                                             {'l24': {'l241': 'val'}}]}})

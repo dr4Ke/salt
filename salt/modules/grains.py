@@ -539,6 +539,10 @@ def set(key,
         salt '*' grains.set 'apps:myApp' '{port: 2209}'
     '''
 
+    ret = {'comment': [],
+           'changes': {},
+           'result': True}
+
     # Get val type
     _new_value_type = 'simple'
     if isinstance(val, dict):
@@ -558,15 +562,20 @@ def set(key,
         _existing_value_type = 'complex'
 
     if _existing_value_type != None and _existing_value == val:
-        return 'The value \'{0}\' was already set for key \'{1}\''.format(val, key)
+        ret['comment'] = 'The value \'{0}\' was already set for key \'{1}\''.format(val, key)
+        return ret
 
     if _existing_value is not None and not force:
         if _existing_value_type == 'complex':
-            return 'The key \'{0}\' exists but is a dict or a list. '.format(key) \
+            ret['comment'] = 'The key \'{0}\' exists but is a dict or a list. '.format(key) \
                  + 'Use \'force=True\' to overwrite.'
+            ret['result'] = False
+            return ret
         elif _new_value_type == 'complex' and _existing_value_type != None:
-            return 'The key \'{0}\' exists and the given value is a '.format(key) \
+            ret['comment'] = 'The key \'{0}\' exists and the given value is a '.format(key) \
                  + 'dict or a list. Use \'force=True\' to overwrite.'
+            ret['result'] = False
+            return ret
         else:
             _value = val
     else:
@@ -596,9 +605,17 @@ def set(key,
         elif _existing_value == rest or force == True:
             _existing_value = {rest: _value}
         else:
-            return 'The key \'{0}\' value is \'{1}\', '.format(key, _existing_value) \
+            ret['comment'] = 'The key \'{0}\' value is \'{1}\', '.format(key, _existing_value) \
                  + 'which is different from the provided key \'{0}\'. '.format(rest) \
                  + 'Use \'force=True\' to overwrite.'
+            ret['result'] = False
+            return ret
         _value = _existing_value
 
-    return setval(key, _value, destructive=destructive)
+    _setval_ret = setval(key, _value, destructive=destructive)
+    if isinstance(_setval_ret, dict):
+        ret['changes'] = _setval_ret
+    else:
+        ret['comment'] = _setval_ret
+        ret['result'] = False
+    return ret
