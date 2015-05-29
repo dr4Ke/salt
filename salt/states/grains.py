@@ -30,34 +30,9 @@ def present(name, value):
         grains.present:
           - value: edam
     '''
-    ret = {'name': name,
-           'changes': {},
-           'result': True,
-           'comment': ''}
-    if isinstance(value, dict):
-        ret['result'] = False
-        ret['comment'] = 'Grain value cannot be dict'
-        return ret
-    if __grains__.get(name) == value:
-        ret['comment'] = 'Grain is already set'
-        return ret
-    if __opts__['test']:
-        ret['result'] = None
-        if name not in __grains__:
-            ret['comment'] = 'Grain {0} is set to be added'.format(name)
-            ret['changes'] = {'new': name}
-        else:
-            ret['comment'] = 'Grain {0} is set to be changed'.format(name)
-            ret['changes'] = {'new': name}
-        return ret
-    grain = __salt__['grains.setval'](name, value)
-    if grain != {name: value}:
-        ret['result'] = False
-        ret['comment'] = 'Failed to set grain {0}'.format(name)
-        return ret
-    ret['result'] = True
-    ret['changes'] = grain
-    ret['comment'] = 'Set grain {0} to {1}'.format(name, value)
+    ret = __grains__.set(name, value, delimiter, force, destructive)
+    if ret['result'] == True and ret['changes'] != {}:
+        ret['comment'] = 'Set grain {0} to {1}'.format(name, value)
     return ret
 
 
