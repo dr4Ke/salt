@@ -526,12 +526,10 @@ def set(key,
 
     .. versionadded:: FIXME
 
-    Conflicts are treated as such:
-
-    FIXME
-
-    :param force: Force writing over conflictiong entry. Defaults to False.
-    :param destructive: If an operation results in a key being removed, delete the key, too. Defaults to False.
+    :param force: Force writing over existing entry if given or existing
+                  values are list or dict. Defaults to False.
+    :param destructive: If an operation results in a key being removed,
+                  delete the key, too. Defaults to False.
 
     CLI Example:
 
