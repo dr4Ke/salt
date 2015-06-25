@@ -11,7 +11,7 @@ import os
 # Import Salt Testing libs
 from salttesting import TestCase, skipIf
 from salttesting.helpers import ensure_in_syspath
-from salttesting.mock import NO_MOCK, NO_MOCK_REASON, MagicMock
+from salttesting.mock import NO_MOCK, NO_MOCK_REASON, MagicMock, patch
 
 ensure_in_syspath('../../')
 
@@ -115,6 +115,19 @@ class GrainsTestCase(TestCase):
         self.assertEqual(
             grains.__grains__,
             {'a': 'aval', 'foo': None})
+
+    @patch.dict(grains.__opts__, {'test': True})
+    def test_present_overwrite_test(self):
+        grains.__grains__ = grainsmod.__grains__ = {'a': 'aval', 'foo': 'bar'}
+        # Overwrite an existing grain
+        ret = grains.present(
+            name='foo',
+            value='newbar')
+        self.assertEqual(ret['result'], None)
+        self.assertEqual(ret['changes'], {'new': 'foo'})
+        self.assertEqual(
+            grains.__grains__,
+            {'a': 'aval', 'foo': 'bar'})
 
     def test_present_unknown_failure(self):
         grains.__grains__ = grainsmod.__grains__ = {'a': 'aval', 'foo': 'bar'}
