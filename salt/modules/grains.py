@@ -659,17 +659,28 @@ def set(key,
                     _existing_value.pop(rest)
             else:
                 _existing_value.update({rest: _value})
+            if _existing_value == {} and destructive is True:
+                _existing_value = None
         elif isinstance(_existing_value, list):
             _list_updated = False
             for _index, _item in enumerate(_existing_value):
-                if _item == rest:
+                if _item == rest and _value is not None:
                     _existing_value[_index] = {rest: _value}
                     _list_updated = True
                 elif isinstance(_item, dict) and rest in _item:
-                    _item.update({rest: _value})
-                    _list_updated = True
+                    if _value is None and destructive is True:
+                        _item.pop(rest)
+                        _list_updated = True
+                    else:
+                        _item.update({rest: _value})
+                        _list_updated = True
+                    if _item == {} and destructive is True:
+                        _existing_value[_index] = rest
+                        _list_updated = True
             if not _list_updated:
                 _existing_value.append({rest: _value})
+            if _existing_value == [] and destructive is True:
+                _existing_value = None
         elif _existing_value == rest or force:
             _existing_value = {rest: _value}
         else:
@@ -679,6 +690,9 @@ def set(key,
             ret['result'] = False
             return ret
         _value = _existing_value
+
+    if (_value == [] or _value == {}) and destructive is True:
+        _value = None
 
     _setval_ret = setval(key, _value, destructive=destructive)
     if isinstance(_setval_ret, dict):

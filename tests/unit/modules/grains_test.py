@@ -428,11 +428,18 @@ class GrainsModuleTestCase(TestCase):
                                                 'c': 8})
 
     def test_set_nested_update_dict_remove_key(self):
+        grainsmod.__grains__ = {'a': 'aval', 'b': {'nested': 'val', 'k2': 'v2'}, 'c': 8}
+        res = grainsmod.set('b,nested', None, delimiter=',', destructive=True)
+        self.assertTrue(res['result'])
+        self.assertEqual(res['changes'], {'b': {'k2': 'v2'}})
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': {'k2': 'v2'}, 'c': 8})
+
+    def test_set_nested_update_dict_remove_key_recursive(self):
         grainsmod.__grains__ = {'a': 'aval', 'b': {'nested': 'val'}, 'c': 8}
         res = grainsmod.set('b,nested', None, delimiter=',', destructive=True)
         self.assertTrue(res['result'])
-        self.assertEqual(res['changes'], {'b': {}})
-        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'b': {}, 'c': 8})
+        self.assertEqual(res['changes'], {'b': None})
+        self.assertEqual(grainsmod.__grains__, {'a': 'aval', 'c': 8})
 
     def test_set_nested_update_dict_new_key(self):
         grainsmod.__grains__ = {'a': 'aval', 'b': {'nested': 'val'}, 'c': 8}

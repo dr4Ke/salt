@@ -697,6 +697,25 @@ class GrainsTestCase(TestCase):
                                   + "- correct\n"
         )
 
+    def test_absent_delete_recursive(self):
+        # Recursive deletion
+        self.setGrains({'a': 'aval', 'foo': ['order', {'is': {'nested': 'bar'}}, 'correct']})
+        ret = grains.absent(
+            name='foo:is:nested',
+            destructive=True)
+        self.assertEqual(ret['result'], True)
+        self.assertEqual(ret['comment'], 'Grain foo:is:nested was deleted')
+        self.assertEqual(ret['changes'], {'deleted': 'foo:is:nested'})
+        self.assertEqual(
+            grains.__grains__,
+            {'a': 'aval', 'foo': ['order', 'is', 'correct']})
+        self.assertGrainFileContent("a: aval\n"
+                                  + "foo:\n"
+                                  + "- order\n"
+                                  + "- is\n"
+                                  + "- correct\n"
+        )
+
     # 'append' function tests: 6
 
     def test_append(self):
