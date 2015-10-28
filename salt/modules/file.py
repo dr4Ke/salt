@@ -3323,7 +3323,7 @@ def get_managed(
 
     .. code-block:: bash
 
-        salt '*' file.get_managed /etc/httpd/conf.d/httpd.conf jinja salt://http/httpd.conf '{hash_type: 'md5', 'hsum': <md5sum>}' root root '755' base None None
+        salt '*' file.get_managed /etc/httpd/conf.d/httpd.conf jinja salt://http/httpd.conf 'md5=<md5sum>' root root '755' base None None
     '''
     # Copy the file to the minion and templatize it
     sfn = ''
