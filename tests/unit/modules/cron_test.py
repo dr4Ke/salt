@@ -484,6 +484,47 @@ class CronTestCase(TestCase):
                     ).format(
                         idx, get_crontab(), inc_tests[idx]))
 
+    @patch('salt.modules.cron._write_cron_lines',
+           new=MagicMock(side_effect=write_crontab))
+    def test__issue29082(self):
+        '''
+        handle commented cron jobs
+        https://github.com/saltstack/salt/issues/29082
+        '''
+        self.maxDiff = None
+        with patch(
+            'salt.modules.cron.raw_cron',
+            new=MagicMock(side_effect=get_crontab)
+        ):
+            set_crontab(
+                '# An unmanaged commented cron job\n'
+                '#0 * * * * /bin/true\n'
+                '# Lines below here are managed by Salt, do not edit\n'
+                '# cron_1 SALT_CRON_IDENTIFIER:cron_1\n#0 * * * * my_cmd_1\n'
+                '# cron_2 SALT_CRON_IDENTIFIER:cron_2\n#* * * * * my_cmd_2\n'
+                '# cron_3 SALT_CRON_IDENTIFIER:cron_3\n#0 * * * * my_cmd_3\n'
+                '# cron_4 SALT_CRON_IDENTIFIER:cron_4\n0 * * * * my_cmd_4\n'
+            )
+            crons1 = cron.list_tab('root')
+            self.assertEqual(crons1, {
+                'crons': [
+                    {'cmd': 'my_cmd_1', 'comment': 'cron_1', 'daymonth': '*',
+                     'dayweek': '*', 'hour': '*', 'identifier': 'cron_1',
+                     'minute': '#0', 'month': '*'},
+                    {'cmd': 'my_cmd_2', 'comment': 'cron_2', 'daymonth': '*',
+                     'dayweek': '*', 'hour': '*', 'identifier': 'cron_2',
+                     'minute': '#*', 'month': '*'},
+                    {'cmd': 'my_cmd_3', 'comment': 'cron_3', 'daymonth': '*',
+                     'dayweek': '*', 'hour': '*', 'identifier': 'cron_3',
+                     'minute': '#0', 'month': '*'},
+                    {'cmd': 'my_cmd_4', 'comment': 'cron_4', 'daymonth': '*',
+                     'dayweek': '*', 'hour': '*', 'identifier': 'cron_4',
+                     'minute': '0', 'month': '*'},
+                ],
+                'env': [],
+                'pre': ['# An unmanaged commented cron job', '#0 * * * * /bin/true'],
+                'special': []})
+
     @patch('salt.modules.cron.raw_cron',
            new=MagicMock(side_effect=[
                (L + '\n'),
