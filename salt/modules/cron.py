@@ -6,6 +6,7 @@ from __future__ import absolute_import
 
 # Import python libs
 import os
+import re
 import random
 
 # Import salt libs
@@ -264,6 +265,13 @@ def list_tab(user):
             flag = True
             continue
         if flag:
+            commented_cron_job = False
+            if line.startswith('#') and (
+                   line[1] == '@' or
+                   re.match('[0-9\*]', line[1])):
+                # It's probably a commented cron job
+                line = line[1:]
+                commented_cron_job = True
             if line.startswith('@'):
                 # Its a "special" line
                 dat = {}
@@ -301,9 +309,12 @@ def list_tab(user):
                        'identifier': identifier,
                        'cmd': ' '.join(comps[5:]),
                        'comment': comment}
+                if commented_cron_job:
+                    dat['minute'] = '#' + dat['minute']
                 ret['crons'].append(dat)
                 identifier = None
                 comment = None
+                commented_cron_job = False
             elif line.find('=') > 0:
                 # Appears to be a ENV setup line
                 comps = line.split('=')
