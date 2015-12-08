@@ -179,7 +179,8 @@ class MountTestCase(TestCase):
                         ret.update({'comment': comt, 'changes': {}})
                         self.assertDictEqual(mount.mounted(name2, device2,
                                                            fstype2,
-                                                           opts=['uid=user1',
+                                                           opts=['credentials=/tmp/creds',
+                                                                 'uid=user1',
                                                                  'gid=group1']),
                                              ret)
 

@@ -319,6 +319,11 @@ def mounted(name,
                     if fstype in ['cifs'] and opt.split('=')[0] == 'user':
                         opt = "username={0}".format(opt.split('=')[1])
 
+                    # Ignore credentials= option as it's not reported in the active mounts
+                    # FIXME: maybe we can extract the username= option from the credentials file
+                    if fstype in ['cifs'] and opt.split('=')[0] == 'credentials':
+                        continue
+
                     # convert uid/gid to numeric value from user/group name
                     name_id_opts = {'uid': 'user.info',
                                     'gid': 'group.info'}
